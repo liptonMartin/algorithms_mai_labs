@@ -152,9 +152,9 @@ public abstract class GenericTreeTests<TTree> where TTree : ITree<int, string>, 
         Random random = new (123);
         HashSet<int> inserted = new ();
         
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 500; i++)
         {
-            int val = random.Next(0, 1000);
+            int val = random.Next(-1000, 1000);
             if (inserted.Add(val)) Tree.Add(val, "v");
         }
         
@@ -166,7 +166,7 @@ public abstract class GenericTreeTests<TTree> where TTree : ITree<int, string>, 
         Assert.That(sortedKeys, Is.EquivalentTo(inserted));
         
         // Удаляем половину
-        List<int> toRemove = inserted.Take(20).ToList();
+        List<int> toRemove = inserted.Take(250).ToList();
         foreach (int k in toRemove)
         {
             Assert.That(Tree.Remove(k), Is.True, $"Failed to remove key {k}");

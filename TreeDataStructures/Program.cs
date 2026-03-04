@@ -1,6 +1,7 @@
 ﻿using System;
 using TreeDataStructures.Implementations.AVL;
 using TreeDataStructures.Implementations.BST;
+using TreeDataStructures.Implementations.RedBlackTree;
 using TreeDataStructures.Implementations.Splay;
 using TreeDataStructures.Implementations.Treap;
 
@@ -21,10 +22,13 @@ class Program
         // System.Console.WriteLine("Идет проверка Treap дерева");
         // TestTreapTree();
         
-        System.Console.Write("\n\n\n\n");
-        System.Console.WriteLine("Идет проверка AVL дерева");
+        // System.Console.Write("\n\n\n\n");
+        // System.Console.WriteLine("Идет проверка AVL дерева");
+        //
+        // TestAVLTree();
         
-        TestAVLTree();
+        System.Console.WriteLine("Идет проверка красно-черного дерева");
+        TestRBTree();
     }
 
     private static void TestSplayTree()
@@ -221,5 +225,31 @@ class Program
             bool result =  tree.Remove(key);
             if (result == false) throw new Exception();
         }
+    }
+
+    private static void TestRBTree()
+    {
+        RedBlackTree<int, string> tree = new RedBlackTree<int, string>();
+        
+        int[] keys = new[] { 50, 30, 70, 20, 40, 60, 80 };
+        foreach (var k in keys) tree.Add(k, k.ToString());
+
+
+        tree.Remove(20);
+        tree.Remove(30);
+        tree.Remove(50);
+        
+        foreach (var item in tree.InOrder())
+        {
+            for (int i = 0; i < item.Depth; ++i)
+            {
+                System.Console.Write("-");
+            }
+
+            RbNode<int, string>? node = tree.PublicFindNode(item.Key);
+            if (node == null) throw new Exception();
+            System.Console.WriteLine($"Ключ: {item.Key}, цвет: {node.Color}");
+        }
+        
     }
 }

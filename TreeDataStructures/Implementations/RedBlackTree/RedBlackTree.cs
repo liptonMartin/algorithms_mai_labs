@@ -92,11 +92,13 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
         // у узла нет детей
         if (node.Left == null && node.Right == null)
         {
-            OnNodeRemoved(node.Parent, node);
+            if (node.Color == RbColor.Black) OnNodeRemoved(node.Parent, node);
             
             if (node.IsLeftChild) node.Parent?.Left = null;
             else if (node.IsRightChild) node.Parent?.Right = null;
             else Root = null; // удалили корень
+
+            Root?.Color = RbColor.Black;
             
             node.Parent = null;
         }
@@ -106,7 +108,9 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
         {
             Transplant(node, node.Right);
             
-            OnNodeRemoved(node.Parent, node.Right);
+            if (node.Color == RbColor.Black) OnNodeRemoved(node.Parent, node.Right);
+
+            Root?.Color = RbColor.Black;
             
             node.Right = null;
             node.Parent = null;
@@ -117,7 +121,9 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
         {
             Transplant(node, node.Left);
 
-            OnNodeRemoved(node.Parent, node.Left);
+            if (node.Color == RbColor.Black) OnNodeRemoved(node.Parent, node.Left);
+            
+            Root?.Color =  RbColor.Black;
             
             node.Left = null;
             node.Parent = null;
@@ -146,6 +152,7 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
             else // mostLeftNodeInRightSubtree != node.Right
             {
                 parentDeleteNode.Left = childMostLeftNodeInRightSubtree;
+                childMostLeftNodeInRightSubtree?.Parent = parentDeleteNode;
             }
 
             
@@ -168,7 +175,6 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
             if (childMostLeftNodeInRightSubtree == null)
             {
                 childMostLeftNodeInRightSubtree = node;
-                // TODO: не нужно ли написать node.Color = RbColor.Black
                 childMostLeftNodeInRightSubtree.Parent = parentDeleteNode;
 
                 if (parentDeleteNode == mostLeftNodeInRightSubtree)
@@ -180,8 +186,10 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
                     parentDeleteNode.Left = childMostLeftNodeInRightSubtree;
                 }
             }
+
+            if (mostLeftNodeInRightSubtree.Color == RbColor.Black)
+                OnNodeRemoved(parentDeleteNode, childMostLeftNodeInRightSubtree);
             
-            OnNodeRemoved(parentDeleteNode, childMostLeftNodeInRightSubtree);
             if (childMostLeftNodeInRightSubtree == node)
             {
                 childMostLeftNodeInRightSubtree.Right = null;
@@ -195,6 +203,8 @@ public class RedBlackTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, RbN
             node.Right = null;
             node.Left = null;
             node.Parent = null;
+
+            Root?.Color = RbColor.Black;
         }
 
         else

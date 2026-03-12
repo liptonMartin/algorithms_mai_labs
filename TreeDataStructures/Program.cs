@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using TreeDataStructures.Implementations.AVL;
 using TreeDataStructures.Implementations.BST;
 using TreeDataStructures.Implementations.RedBlackTree;
@@ -23,12 +24,11 @@ class Program
         // TestTreapTree();
         
         // System.Console.Write("\n\n\n\n");
-        // System.Console.WriteLine("Идет проверка AVL дерева");
-        //
-        // TestAVLTree();
+        System.Console.WriteLine("Идет проверка AVL дерева");
+        TestAVLTree();
         
-        System.Console.WriteLine("Идет проверка красно-черного дерева");
-        TestRBTree();
+        // System.Console.WriteLine("Идет проверка красно-черного дерева");
+        // TestRBTree();
     }
 
     private static void TestSplayTree()
@@ -138,6 +138,33 @@ class Program
         System.Console.WriteLine($"Значение значения по ключу 5: {value}");
     }
 
+    private static void TestAVLTree()
+    {
+        AvlTree<int, int> tree = new AvlTree<int, int>();
+        
+        tree.Add(10, 1);
+        tree.Add(20, 2);
+        tree.Add(30, 3);
+        tree.Add(40, 4);
+        tree.Add(50, 5);
+        tree.Add(35, 6);
+        tree.Add(38, 7);
+
+        tree.Remove(30);
+        
+        foreach (var item in tree.InOrder())
+        {
+            for (int i = 0; i < item.Depth; ++i)
+            {
+                Console.Write("-");
+            }
+            
+            AvlNode<int, int> node = tree.FindNode(item.Key)!;
+            
+            Console.WriteLine($"Ключ: {node.Key}, Высота: {node.Height}");
+        }
+    }
+
     private static void TestTreapTree()
     {
         // Treap<int, int> tree = new Treap<int, int>();
@@ -200,31 +227,6 @@ class Program
         System.Console.Write("");
         
         
-    }
-
-    private static void TestAVLTree()
-    {
-        AvlTree<int, int> tree = new AvlTree<int, int>();
-        
-        tree.Add(5, 1);
-        tree.Add(12, 2);
-        tree.Add(7, 3);
-        tree.Add(9, 4);
-        tree.Add(10, 5);
-        tree.Add(12, 2);
-        tree.Add(13, 3);
-        tree.Add(20, 3);
-        tree.Add(30, 2);
-        tree.Add(45, 57);
-        tree.Add(24, 10);
-
-
-        foreach (var item in tree.InOrder())
-        {
-            int key =  item.Key;
-            bool result =  tree.Remove(key);
-            if (result == false) throw new Exception();
-        }
     }
 
     private static void TestRBTree()

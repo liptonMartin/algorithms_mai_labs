@@ -8,235 +8,163 @@ public class AvlTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, AvlNode<
     protected override AvlNode<TKey, TValue> CreateNode(TKey key, TValue value)
         => new(key, value);
 
-    private void BalancingAvlTree(ref AvlNode<TKey, TValue>? currentNode, ref int balance)
+    private void BalancingAvlTree(AvlNode<TKey, TValue> currentNode)
     {
-        if (currentNode == null) return;
-        
-        int heightLeft = currentNode.Left?.Height ?? 0;
-        int heightRight = currentNode.Right?.Height ?? 0;
-        
-        currentNode.Height = Math.Max(heightLeft, heightRight) + 1;
-        
-        balance = heightLeft - heightRight;
-        
-        if (balance == 2 || balance == -2)
+        int balance = GetBalanceNode(currentNode);
+    
+        // левое поддерево больше
+        if (balance > 1)
         {
-            AvlNode<TKey, TValue>? left = currentNode.Left;
-            AvlNode<TKey, TValue>? right = currentNode.Right;
-
-            int heightLeftLeft = left?.Left?.Height ?? 0;
-            int heightLeftRight = left?.Right?.Height ?? 0;
-            
-            int heightRightLeft = right?.Left?.Height ?? 0;
-            int heightRightRight = right?.Right?.Height ?? 0;
-            
-            int balanceLeftChild = heightLeftLeft - heightLeftRight;
-            int balanceRightChild = heightRightLeft - heightRightRight;
-
-            // малые повороты:
-            if (balance == -2 && (balanceRightChild == -1 || balanceRightChild == 0))
+            if (GetBalanceNode(currentNode.Left!) < 0)
             {
-                // нужен малый левый поворот
-                if (right == null) throw new InvalidOperationException();
-                RotateLeft(right);
-
-                // изменилась высота у currentNode и right
-                currentNode.Height = Math.Max(currentNode.Left?.Height ?? 0, currentNode.Right?.Height ?? 0) + 1;
-                right.Height = Math.Max(right.Left?.Height ?? 0, right.Right?.Height ?? 0) + 1;
-                
-                currentNode = right;
+                RotateLeft(currentNode.Left!.Right!);
             }
-
-            else if (balance == 2 && (balanceLeftChild == 1 || balanceLeftChild == 0))
-            {
-                // нужен малый правый поворот
-                if (left == null) throw new InvalidOperationException();
-                RotateRight(left);
-                
-                // изменилась высота у currentNode и left 
-                currentNode.Height = Math.Max(currentNode.Left?.Height ?? 0, currentNode.Right?.Height ?? 0) + 1;
-                left.Height = Math.Max(left.Left?.Height ?? 0, left.Right?.Height ?? 0) + 1;
-                
-                currentNode = left;
-            }
-            
-            else if (balance == -2 && balanceRightChild == 1)
-            {
-                // нужен большой левый поворот
-                if (right == null) throw new InvalidOperationException();
-                
-                AvlNode<TKey, TValue>? rightLeft = right.Left;
-                if (rightLeft == null) throw new InvalidOperationException();
-
-                RotateBigLeft(rightLeft);
-                
-                // изменилась высота у currentNode, right, rightLeft
-                currentNode.Height = Math.Max(currentNode.Left?.Height ?? 0, currentNode.Right?.Height ?? 0) + 1;
-                right.Height = Math.Max(right.Left?.Height ?? 0, right.Right?.Height ?? 0) + 1;
-                rightLeft.Height = Math.Max(rightLeft.Left?.Height ?? 0, rightLeft.Right?.Height ?? 0) + 1;
-                
-                currentNode = rightLeft;
-            }
-            
-            else if (balance == 2 && balanceLeftChild == -1)
-            {
-                // нужен большой правый поворот
-                if (left == null) throw new InvalidOperationException();
-                
-                AvlNode<TKey, TValue>? leftRight = left.Right;
-                if (leftRight == null) throw new InvalidOperationException();
-                
-                RotateBigRight(leftRight);
-                
-                // изменилась высота у currentNode, left, leftRight
-                currentNode.Height = Math.Max(currentNode.Left?.Height ?? 0, currentNode.Right?.Height ?? 0) + 1;
-                left.Height = Math.Max(left.Left?.Height ?? 0, left.Right?.Height ?? 0) + 1;
-                leftRight.Height = Math.Max(leftRight.Left?.Height ?? 0, leftRight.Right?.Height ?? 0) + 1;
-                
-                currentNode = leftRight;
-            }
-            else
-            {
-                // нужна балансировка, но никакая не подходит, какие-то проблемы ранее при построении дерева
-                throw new InvalidOperationException();
-            }
+            RotateRight(currentNode.Left!);
         }
-        else
+
+        // правое поддерево больше
+        else if (balance < -1)
         {
-            currentNode = currentNode.Parent;
+            if (GetBalanceNode(currentNode.Right!) > 0)
+            {
+                RotateRight(currentNode.Right!.Left!);
+            }
+            RotateLeft(currentNode.Right!);
         }
-            
     }
 
     protected override void OnNodeAdded(AvlNode<TKey, TValue> newNode)
     {
-        int balance = 0;
+        UpdateHeightNode(newNode);
         AvlNode<TKey, TValue>? currentNode = newNode.Parent;
-        do
+        if (currentNode == null) return;
+        
+        while (currentNode != null)
         {
-            BalancingAvlTree(ref currentNode, ref balance);
-        } while (balance != 0 && currentNode != null);
+            BalancingAvlTree(currentNode);
+            UpdateHeightNode(currentNode);
+            int balance = GetBalanceNode(currentNode);
+            currentNode = currentNode.Parent;
+        }
     }
 
     protected override void RemoveNode(AvlNode<TKey, TValue> node)
     {
-        if (node.Right != null)
+        // у узла нет детей
+        if (node.Left == null && node.Right == null)
         {
-            // если есть правый ребенок
-            // нужно найти самого левого потомка в правом поддереве
-            // заменить его на текущий узел
+            if (node.IsLeftChild) node.Parent?.Left = null;
+            else if (node.IsRightChild) node.Parent?.Right = null;
+            else Root = null; // удалили корень
             
-            AvlNode<TKey, TValue> mostLeftChildInRightSubTree = node.Right;
-            while (mostLeftChildInRightSubTree.Left != null)
-            {
-                mostLeftChildInRightSubTree =  mostLeftChildInRightSubTree.Left;
-            }
+            OnNodeRemoved(node.Parent, node);
             
-            // запомним родителя удаляемого узла, чтобы потом оттуда запустить балансировку
-            // балансировка в методе OnNodeRemoved
-            
-            AvlNode<TKey, TValue>? parentDeletedNode = mostLeftChildInRightSubTree.Parent;
-            
-            Transplant(node, mostLeftChildInRightSubTree);
-            // (у mostLeftChildRightSubTree нет детей, это лист, а вот у удаляемого узла были дети
-            // теперь эти дети являются детьми mostLeftChildRightSubTree
-            
-            if (mostLeftChildInRightSubTree != node.Right)
-                // если в правом поддереве есть хотя бы один левый потомок
-            {
-                parentDeletedNode?.Left = mostLeftChildInRightSubTree.Right;
-                mostLeftChildInRightSubTree.Right?.Parent = parentDeletedNode;
-                
-                mostLeftChildInRightSubTree.Right = node.Right;
-                node.Right?.Parent = mostLeftChildInRightSubTree;
-                
-            }
-            else
-            {
-                // если в правом поддереве нет ни одного потомка,
-                // то родитель удаляемого элемента (тот самый который мы переместили)
-                // и будет mostLeftChildInRightTree
-                parentDeletedNode = mostLeftChildInRightSubTree;
-            }
-            
-            mostLeftChildInRightSubTree.Left = node.Left;
-            node.Left?.Parent = mostLeftChildInRightSubTree;
-            
-            // также изменим node, мы же его переместили
-            node.Left = null;
-            node.Right = null;
-            node.Parent = parentDeletedNode;
-            
-            OnNodeRemoved(parentDeletedNode, node);
+            node.Parent = null;
         }
         
-        else if (node.Left != null)
+        // у узла есть только правый ребенок
+        else if (node.Left == null && node.Right != null)
         {
-            // если есть левый ребенок, но нет правого ребенка
-            // нужно найти самого правого потомка в левом поддереве
-            // заменить его на текущий узел
+            Transplant(node, node.Right);
             
-            AvlNode<TKey, TValue> mostRightChildInLeftSubTree = node.Left;
-            while (mostRightChildInLeftSubTree.Right != null)
-            {
-                mostRightChildInLeftSubTree = mostRightChildInLeftSubTree.Right;
-            }
+            OnNodeRemoved(node.Parent, node.Right);
             
-            // запомним родителя удаляемого узла, чтобы потом оттуда запустить балансировку
-            // балансировка в методе OnNodeRemoved
-            
-            AvlNode<TKey, TValue>? parentDeletedNode = mostRightChildInLeftSubTree.Parent;
-            
-            Transplant(node, mostRightChildInLeftSubTree);
-
-            if (mostRightChildInLeftSubTree != node.Left)
-                // в левом поддереве есть хотя бы один правый потомок
-            {
-                parentDeletedNode?.Right = mostRightChildInLeftSubTree.Left;
-                mostRightChildInLeftSubTree.Left?.Parent = parentDeletedNode;
-                
-                mostRightChildInLeftSubTree.Left = node.Left;
-                node.Left?.Parent = mostRightChildInLeftSubTree;
-            }
-
-            else
-            {
-                // если в левом поддереве нет ни правого одного потомка
-                parentDeletedNode = mostRightChildInLeftSubTree;
-            }
-            
-            mostRightChildInLeftSubTree.Right = node.Right;
-            node.Right?.Parent = mostRightChildInLeftSubTree;
-            
-            // также изменим node, мы же его переместили
-            node.Left = null;
             node.Right = null;
-            node.Parent = parentDeletedNode;
+            node.Parent = null;
+        }
+        
+        // у узла есть только левый ребенок
+        else if (node.Left != null && node.Right == null)
+        {
+            Transplant(node, node.Left);
+
+            OnNodeRemoved(node.Parent, node.Left);
             
-            OnNodeRemoved(parentDeletedNode, node);
+            node.Left = null;
+            node.Parent = null;
+
+        }
+
+        // два ребенка у узла
+        else if (node.Left != null && node.Right != null)
+        {
+            AvlNode<TKey, TValue> mostLeftNodeInRightSubtree = FindMostLeftNodeInRightSubtree(node)!;
+            
+            node.Key = mostLeftNodeInRightSubtree.Key;
+            node.Value = mostLeftNodeInRightSubtree.Value;
+
+            if (mostLeftNodeInRightSubtree.IsLeftChild)
+                mostLeftNodeInRightSubtree.Parent!.Left = mostLeftNodeInRightSubtree.Right;
+            else mostLeftNodeInRightSubtree.Parent!.Right = mostLeftNodeInRightSubtree.Right;
+
+            mostLeftNodeInRightSubtree.Right?.Parent = mostLeftNodeInRightSubtree.Parent;
+            
+            OnNodeRemoved(mostLeftNodeInRightSubtree.Parent, node.Right);
+            
+            mostLeftNodeInRightSubtree.Parent = null;
+            mostLeftNodeInRightSubtree.Right = null;
         }
 
         else
         {
-            // нет детей, значит это лист
-            // просто удалить ссылку на этот узел
-
-            if (node.Parent != null && node.IsLeftChild) node.Parent.Left = null;
-            else if (node.Parent != null && node.IsRightChild) node.Parent.Right = null;
-            else Root = null; //  нет родителя - значит узел
-            
-            OnNodeRemoved(node.Parent, node);
+            throw new InvalidOperationException("Internal Error!");
         }
     }
 
     protected override void OnNodeRemoved(AvlNode<TKey, TValue>? parent, AvlNode<TKey, TValue>? child)
     {
         // нужно запустить балансировку от родителя удаляемого узла
-
-        int balance = 0;
-        while (balance != 1 && balance != -1 && parent != null)
+        if (parent == null) return;
+    
+        var current = parent;
+        while (current != null)
         {
-            BalancingAvlTree(ref parent, ref balance);
+            int oldHeight = current.Height;
+            UpdateHeightNode(current);
+        
+            int balance = GetBalanceNode(current);
+        
+            if (Math.Abs(balance) >= 2)
+            {
+                BalancingAvlTree(current);
+            }
+            
+            current = current.Parent;
         }
+    }
+
+    protected override void RotateLeft(AvlNode<TKey, TValue> x)
+    {
+        base.RotateLeft(x);
+        
+        if (x.Left != null) UpdateHeightNode(x.Left);
+        UpdateHeightNode(x);
+    }
+
+    protected override void RotateRight(AvlNode<TKey, TValue> y)
+    {
+        base.RotateRight(y);
+        
+        if (y.Right != null) UpdateHeightNode(y.Right);
+        UpdateHeightNode(y);
+    }
+    
+    private AvlNode<TKey, TValue>? FindMostLeftNodeInRightSubtree(AvlNode<TKey, TValue> node)
+    {
+        AvlNode<TKey, TValue>? currentNode = node.Right;
+        while (currentNode?.Left != null) currentNode = currentNode.Left;
+        return currentNode;
+    }
+
+    private void UpdateHeightNode(AvlNode<TKey, TValue> node)
+    {
+        node.Height = Math.Max(node.Left?.Height ?? 0, node.Right?.Height ?? 0) + 1;
+    }
+
+    private int GetBalanceNode(AvlNode<TKey, TValue> node)
+    {
+        int leftHeight = node.Left?.Height ?? 0;
+        int rightHeight = node.Right?.Height ?? 0;
+        return leftHeight - rightHeight;
     }
 }

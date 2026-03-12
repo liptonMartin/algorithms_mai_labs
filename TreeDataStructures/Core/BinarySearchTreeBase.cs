@@ -197,7 +197,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
     protected abstract TNode CreateNode(TKey key, TValue value);
     
     
-    protected TNode? FindNode(TKey key)
+    public TNode? FindNode(TKey key)
     {
         TNode? current = Root;
         while (current != null)
@@ -209,7 +209,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         return null;
     }
 
-    protected void RotateLeft(TNode x)
+    protected virtual void RotateLeft(TNode x)
     {
         // если корень, то ничего не делаем
         if (x.Parent == null) return;
@@ -237,7 +237,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         if (p == this.Root) this.Root = x;
     }
 
-    protected void RotateRight(TNode y)
+    protected virtual void RotateRight(TNode y)
     {
         // если корень, то ничего не делаем
         if (y.Parent == null) return;

@@ -146,7 +146,12 @@ public sealed class BetterBigInteger : IBigInteger
     {
         /* переводит из дополнительного кода в систему счисления с основанием 2^32 */
 
-        if (!isNegative) return new BetterBigInteger(digits);
+        if (!isNegative)
+        {
+            var positiveResult = new BetterBigInteger(digits);
+            positiveResult.RemoveForwardZeros();
+            return positiveResult;
+        }
         
         BetterBigInteger result = InvertAllBits(digits, digits.Length) + new BetterBigInteger([1]); // модуль числа
         
